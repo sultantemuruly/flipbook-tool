@@ -1,0 +1,45 @@
+# Development files
+node_modules
+src
+*.ts
+!*.d.ts
+tsconfig.json
+tsconfig.node.json
+vite.config.ts
+
+# Documentation (keep only README)
+COMPLETE_GUIDE.md
+AI_AGENT_GUIDE.md
+EXAMPLES.md
+PACKAGE_SUMMARY.md
+TESTING.md
+VERIFICATION_CHECKLIST.md
+PUBLISHING_GUIDE.md
+example-usage.tsx
+
+# Git files
+.git
+.gitignore
+
+# Build files
+*.log
+*.tgz
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+.DS_Store
+
+# Test files
+*.test.ts
+*.test.tsx
+*.spec.ts
+*.spec.tsx
+__tests__
+coverage
+
