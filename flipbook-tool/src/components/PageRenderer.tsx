@@ -11,19 +11,40 @@ import { convertYouTubeUrl } from '../utils/video';
 interface PageRendererProps {
   config: PageConfig;
   pageNumber: number;
+  pageIndex: number;
 }
 
 export const PageRenderer = React.forwardRef<HTMLDivElement, PageRendererProps>(
-  ({ config, pageNumber }, ref) => {
+  ({ config, pageNumber, pageIndex }, ref) => {
     const pageStyle = resolvePageStyle(config.style);
-    const density = config.density || (config.type === "cover" || config.type === "chapter" ? "hard" : "soft");
-    
+    const density =
+      config.density ||
+      (config.type === 'cover' || config.type === 'chapter' ? 'hard' : 'soft');
+
+    // Use CSS class instead of inline styles (react-pageflip clones elements, CSS classes work better)
+    const pageClassName = `flipbook-page-${pageIndex}`;
+
+    // Build style object for other properties (non-background/color)
+    const finalStyle: React.CSSProperties = {};
+
+    // Copy all styles except background/backgroundColor/color (those are in CSS class)
+    Object.keys(pageStyle).forEach(key => {
+      if (
+        key !== 'background' &&
+        key !== 'backgroundColor' &&
+        key !== 'color'
+      ) {
+        // Specify type to avoid 'any'
+        (finalStyle as Record<string, unknown>)[key] = (pageStyle as Record<string, unknown>)[key];
+      }
+    });
+
     // Render content elements
     const renderContent = () => {
-      if (typeof config.content === "string") {
+      if (typeof config.content === 'string') {
         return <div className="page-text">{config.content}</div>;
       }
-      
+
       if (Array.isArray(config.content)) {
         return (
           <div className="page-content-elements">
@@ -31,111 +52,116 @@ export const PageRenderer = React.forwardRef<HTMLDivElement, PageRendererProps>(
           </div>
         );
       }
-      
+
       return null;
     };
-    
+
     const renderElement = (element: ContentElement, index: number) => {
       const elementStyle = resolvePageStyle(element.style);
-      
+
       switch (element.type) {
-        case "text":
+        case 'text':
           return (
             <p key={index} style={elementStyle}>
               {element.content}
             </p>
           );
-        
-        case "heading":
+        case 'heading': {
           const HeadingTag = `h${element.level || 2}` as keyof JSX.IntrinsicElements;
           return (
             <HeadingTag key={index} style={elementStyle}>
               {element.content}
             </HeadingTag>
           );
-        
-        case "image":
+        }
+        case 'image':
           if (element.image) {
             return renderImage(element.image, index);
           }
           return null;
-        
-        case "video":
+        case 'video':
           if (element.video) {
             return renderVideo(element.video, index);
           }
           return null;
-        
-        case "divider":
+        case 'divider':
           return (
-            <hr 
-              key={index} 
+            <hr
+              key={index}
               style={{
                 ...elementStyle,
                 height: element.height || 1,
-                border: "none",
-                borderTop: "1px solid",
-                margin: "1rem 0",
-              }} 
+                border: 'none',
+                borderTop: '1px solid',
+                margin: '1rem 0',
+              }}
             />
           );
-        
-        case "spacer":
+        case 'spacer':
           return (
-            <div 
-              key={index} 
+            <div
+              key={index}
               style={{
                 height: `${element.height || 20}px`,
                 ...elementStyle,
-              }} 
+              }}
             />
           );
-        
         default:
           return null;
       }
     };
-    
+
     const renderImage = (imageConfig: ImageConfig, key: number) => {
       const imageStyle: React.CSSProperties = {
-        width: imageConfig.width || "auto",
-        height: imageConfig.height || "auto",
-        objectFit: imageConfig.objectFit || "contain",
-        objectPosition: imageConfig.objectPosition || "center",
-        borderRadius: imageConfig.borderRadius ? `${imageConfig.borderRadius}px` : undefined,
-        margin: imageConfig.margin 
-          ? (typeof imageConfig.margin === "number" 
-              ? `${imageConfig.margin}px` 
-              : `${imageConfig.margin.top || 0}px ${imageConfig.margin.right || 0}px ${imageConfig.margin.bottom || 0}px ${imageConfig.margin.left || 0}px`)
+        width: imageConfig.width || 'auto',
+        height: imageConfig.height || 'auto',
+        objectFit: imageConfig.objectFit || 'contain',
+        objectPosition: imageConfig.objectPosition || 'center',
+        borderRadius: imageConfig.borderRadius
+          ? `${imageConfig.borderRadius}px`
+          : undefined,
+        margin: imageConfig.margin
+          ? typeof imageConfig.margin === 'number'
+            ? `${imageConfig.margin}px`
+            : `${imageConfig.margin.top || 0}px ${imageConfig.margin.right || 0}px ${imageConfig.margin.bottom || 0}px ${imageConfig.margin.left || 0}px`
           : undefined,
       };
-      
+
       return (
-        <div key={key} style={{ display: "flex", justifyContent: "center", margin: "1rem 0" }}>
-          <img 
-            src={imageConfig.url} 
-            alt={imageConfig.alt || ""} 
+        <div
+          key={key}
+          style={{ display: 'flex', justifyContent: 'center', margin: '1rem 0' }}
+        >
+          <img
+            src={imageConfig.url}
+            alt={imageConfig.alt || ''}
             style={imageStyle}
           />
         </div>
       );
     };
-    
+
     const renderVideo = (videoConfig: VideoConfig, key: number) => {
       const videoUrl = convertYouTubeUrl(videoConfig.url);
       const videoStyle: React.CSSProperties = {
         width: videoConfig.width || 280,
         height: videoConfig.height || 160,
-        borderRadius: videoConfig.borderRadius ? `${videoConfig.borderRadius}px` : "8px",
-        margin: videoConfig.margin 
-          ? (typeof videoConfig.margin === "number" 
-              ? `${videoConfig.margin}px` 
-              : `${videoConfig.margin.top || 0}px ${videoConfig.margin.right || 0}px ${videoConfig.margin.bottom || 0}px ${videoConfig.margin.left || 0}px`)
+        borderRadius: videoConfig.borderRadius
+          ? `${videoConfig.borderRadius}px`
+          : '8px',
+        margin: videoConfig.margin
+          ? typeof videoConfig.margin === 'number'
+            ? `${videoConfig.margin}px`
+            : `${videoConfig.margin.top || 0}px ${videoConfig.margin.right || 0}px ${videoConfig.margin.bottom || 0}px ${videoConfig.margin.left || 0}px`
           : undefined,
       };
-      
+
       return (
-        <div key={key} style={{ display: "flex", justifyContent: "center", margin: "1rem 0" }}>
+        <div
+          key={key}
+          style={{ display: 'flex', justifyContent: 'center', margin: '1rem 0' }}
+        >
           <iframe
             src={videoUrl}
             width={videoConfig.width || 280}
@@ -149,28 +175,35 @@ export const PageRenderer = React.forwardRef<HTMLDivElement, PageRendererProps>(
         </div>
       );
     };
-    
+
     return (
       <div
         ref={ref}
-        className={`page page-${config.type}`}
+        className={`page page-${config.type} ${pageClassName}`}
         data-density={density}
-        style={pageStyle}
+        style={finalStyle}
       >
         <div className="page-content">
           {config.title && (
-            <h2 className="page-header" style={config.style?.typography ? resolvePageStyle({ typography: config.style.typography }) : {}}>
+            <h2
+              className="page-header"
+              style={
+                config.style?.typography
+                  ? resolvePageStyle({ typography: config.style.typography })
+                  : {}
+              }
+            >
               {config.title}
             </h2>
           )}
-          
+
           {renderContent()}
-          
+
           {/* Render direct image/video if specified */}
           {config.image && renderImage(config.image, -1)}
           {config.video && renderVideo(config.video, -2)}
-          
-          {config.type !== "cover" && (
+
+          {config.type !== 'cover' && (
             <div className="page-footer">{pageNumber}</div>
           )}
         </div>

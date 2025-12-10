@@ -1,14 +1,15 @@
 import "./App.css";
+// import { TestFlipbookSimple } from "./components/TestFlipbookSimple";
 import { TestFlipbook } from "./components/TestFlipbook";
 
 function App() {
   return (
     <>
-      {/* Test the new Flipbook Tool */}
-      <TestFlipbook />
+      {/* Simple test with direct colors */}
+      {/* <TestFlipbookSimple /> */}
       
-      {/* Original book for comparison */}
-      {/* <MyBook /> */}
+      {/* Original test with named colors */}
+      <TestFlipbook />
     </>
   );
 }

@@ -27,13 +27,12 @@
 
 .flipbook-book {
   box-shadow: 0 0 20px rgba(0, 0, 0, 0.3);
-  background-color: #fff;
   border-radius: 4px;
   margin: 0 auto;
 }
 
 .flipbook-book > div {
-  background-color: #fff;
+  background: transparent;
 }
 
 .page {
@@ -41,8 +40,85 @@
   overflow: hidden;
   width: 100%;
   height: 100%;
-  background-color: #fff;
-  color: #000;
+  /* Default styles - will be overridden by generated CSS classes */
+  background-color: white;
+  color: black;
+}
+
+/* Portrait mode: Make hard pages slide to the left when flipped forward */
+@media (orientation: portrait) {
+  /* Remove ALL shadows in portrait mode - target everything */
+  .flipbook-book,
+  .flipbook-book *,
+  .flipbook-book::before,
+  .flipbook-book::after,
+  .flipbook-book *::before,
+  .flipbook-book *::after {
+    box-shadow: none !important;
+    -webkit-box-shadow: none !important;
+    filter: none !important;
+  }
+  
+  /* Specifically target shadow elements that react-pageflip might create */
+  .flipbook-book .stf__shadow,
+  .flipbook-book .stf__hardShadow,
+  .flipbook-book .stf__hardInnerShadow {
+    display: none !important;
+    opacity: 0 !important;
+    visibility: hidden !important;
+  }
+
+  /* Forward flip: slide to left and vanish */
+  @keyframes hardPageSlideOut {
+    0% {
+      transform: translateX(0) !important;
+      opacity: 1 !important;
+    }
+    100% {
+      transform: translateX(-100%) !important;
+      opacity: 0 !important;
+    }
+  }
+
+  /* Backward flip: slide from left to center */
+  @keyframes hardPageSlideIn {
+    0% {
+      transform: translateX(-100%) !important;
+      opacity: 1 !important;
+    }
+    100% {
+      transform: translateX(0) !important;
+      opacity: 1 !important;
+    }
+  }
+  
+  /* Hard pages - base styles */
+  .flipbook-book [data-density="hard"],
+  .flipbook-book .stf__item[data-density="hard"],
+  .flipbook-book .stf__block[data-density="hard"] {
+    box-shadow: none !important;
+  }
+  
+  /* FORWARD FLIP: Slide to left and vanish - use CSS variables set by JavaScript */
+  .flipbook-book .stf__item[data-hard-flip="forward"],
+  .flipbook-book .stf__block[data-hard-flip="forward"] {
+    /* Force no rotation on forward flip */
+    transform: var(--hard-flip-transform, translateX(-100%) rotateY(0deg) translateZ(0)) !important;
+    opacity: var(--hard-flip-opacity, 0) !important;
+    transition: transform 0.85s ease-out, opacity 0.85s ease-out !important;
+    box-shadow: none !important;
+    animation: none !important;
+  }
+  
+  /* BACKWARD FLIP: Slide from left to center - use CSS variables set by JavaScript */
+  .flipbook-book .stf__item[data-hard-flip="backward"],
+  .flipbook-book .stf__block[data-hard-flip="backward"] {
+    transform: var(--hard-flip-transform, translateX(-100%)) !important;
+    animation: hardPageSlideIn 1s ease-in-out forwards !important;
+    box-shadow: none !important;
+    transition: none !important;
+    opacity: 1 !important;
+  }
 }
 
 .page-content {
@@ -52,6 +128,7 @@
   flex-direction: column;
   padding: 1.5rem;
   box-sizing: border-box;
+  background: transparent; /* Don't block the page background */
 }
 
 .page-content-elements {
@@ -84,14 +161,14 @@
   margin: 0 0 0.8rem 0;
   padding-bottom: 0.4rem;
   border-bottom: 2px solid #667eea;
-  color: #333;
+  /* color is set via inline styles from config */
 }
 
 .page-text {
   flex: 1;
   font-size: 0.9rem;
   line-height: 1.7;
-  color: #555;
+  /* color is inherited from page */
   overflow-y: auto;
   text-align: justify;
 }
@@ -101,8 +178,9 @@
   padding-top: 0.8rem;
   text-align: center;
   font-size: 0.8rem;
-  color: #888;
-  border-top: 1px solid #eee;
+  opacity: 0.6;
+  /* color is inherited from page */
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
 }
 
 .book-controls {

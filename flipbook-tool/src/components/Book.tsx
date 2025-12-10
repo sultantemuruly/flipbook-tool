@@ -3,11 +3,12 @@
  * Accepts JSON configuration and renders a flipbook
  */
 
-import React, { useRef, useState, useCallback } from "react";
+import React, { useRef, useState, useCallback, useEffect } from "react";
 import HTMLFlipBook from "react-pageflip";
 import { BookConfig } from '../types';
 import { PageRenderer } from './PageRenderer';
 import { defaultSettings, defaultTypography } from '../utils/presets';
+import { resolvePageStyle } from '../utils/styleResolver';
 import './Book.css';
 
 interface FlipEvent {
@@ -93,21 +94,162 @@ export const Book: React.FC<BookProps> = ({
     }
   }, []);
 
+  // Override transforms for hard pages in portrait mode using JavaScript
+  useEffect(() => {
+    // Only run in portrait mode - landscape should be completely untouched
+    if (orientation !== 'portrait') {
+      // Clean up any styles we might have added when switching to landscape
+      const bookContainer = document.querySelector('.flipbook-book') as HTMLElement;
+      if (bookContainer) {
+        const containers = bookContainer.querySelectorAll('.stf__item, .stf__block');
+        containers.forEach((container) => {
+          const el = container as HTMLElement;
+          el.removeAttribute('data-hard-flip');
+          // Don't clear styles in landscape - let react-pageflip handle it
+        });
+      }
+      return;
+    }
+
+    const bookContainer = document.querySelector('.flipbook-book') as HTMLElement;
+    if (!bookContainer) return;
+
+    const applyHardPageAnimations = () => {
+      // // Find all hard page containers AND the page elements themselves
+      const hardPageContainers = Array.from(bookContainer.querySelectorAll('.stf__item, .stf__block')).filter(
+        (container) => {
+          const hardPage = container.querySelector('[data-density="hard"]');
+          return hardPage !== null;
+        }
+      ) as HTMLElement[];
+
+      hardPageContainers.forEach((container) => {
+        const isFlipping = container.classList.contains('stf__item--flipping') || 
+                         container.classList.contains('stf__block--flipping');
+        const isTurnBack = container.classList.contains('--turn-back');
+
+        if (isFlipping && !isTurnBack) {
+          // Forward flip: slide to left and fade
+          // Use CSS custom properties for more reliable override
+          container.style.setProperty('--hard-flip-transform', 'translateX(-100%) rotateY(0deg) translateZ(0)', 'important');
+          container.style.setProperty('--hard-flip-opacity', '0', 'important');
+          container.setAttribute('data-hard-flip', 'forward');
+          // Also set directly as fallback
+          container.style.setProperty('transform', 'translateX(-100%) rotateY(0deg) translateZ(0)', 'important');
+          container.style.setProperty('opacity', '0', 'important');
+          container.style.setProperty('transition', 'transform 0.85s ease-out, opacity 0.85s ease-out', 'important');
+          container.style.setProperty('animation', 'none', 'important');
+        } else if (isFlipping && isTurnBack) {
+          // Backward flip: slide from left to center
+          container.style.setProperty('--hard-flip-transform', 'translateX(-100%)', 'important');
+          container.setAttribute('data-hard-flip', 'backward');
+          // Also set directly as fallback
+          container.style.setProperty('transform', 'translateX(-100%)', 'important');
+          container.style.setProperty('animation', 'hardPageSlideIn 1s ease-in-out forwards', 'important');
+          container.style.setProperty('transition', 'none', 'important');
+          container.style.setProperty('opacity', '1', 'important');
+        } else if (!isFlipping) {
+          // Reset when not flipping
+          container.removeAttribute('data-hard-flip');
+          container.style.removeProperty('--hard-flip-transform');
+          container.style.removeProperty('--hard-flip-opacity');
+        }
+      });
+    };
+
+    // Use MutationObserver to watch for class changes
+    const observer = new MutationObserver(() => {
+      applyHardPageAnimations();
+    });
+
+    observer.observe(bookContainer, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ['class', 'style']
+    });
+
+    // Use requestAnimationFrame for continuous override
+    let rafId: number;
+    const continuousOverride = () => {
+      if (orientation === 'portrait') {
+        applyHardPageAnimations();
+        rafId = requestAnimationFrame(continuousOverride);
+      }
+    };
+    rafId = requestAnimationFrame(continuousOverride);
+
+    return () => {
+      observer.disconnect();
+      if (rafId) cancelAnimationFrame(rafId);
+    };
+  }, [orientation, state]);
+
   // Apply global typography if specified
   const globalTypography = config.globalStyle?.typography || defaultTypography;
+
+  // Generate CSS classes for each page's styles (react-pageflip clones elements, so CSS classes work better than inline styles)
+  const generatePageStyles = () => {
+    const styles: string[] = [];
+    
+    // Global styles
+    styles.push(`
+      .book-container {
+        --global-font-size: ${globalTypography.fontSize};
+        --global-font-family: ${globalTypography.fontFamily};
+        --global-font-weight: ${globalTypography.fontWeight};
+        --global-line-height: ${globalTypography.lineHeight};
+        --global-text-color: ${config.globalStyle?.colors?.text || "#000"};
+      }
+    `);
+    
+    // Generate unique class for each page
+    config.pages.forEach((pageConfig, index) => {
+      if (!pageConfig.style) return;
+      
+      const pageStyle = resolvePageStyle(pageConfig.style);
+      const bgValue = pageStyle.background || pageStyle.backgroundColor;
+      const colorValue = pageStyle.color;
+      
+      // Create unique class name
+      const className = `flipbook-page-${index}`;
+      
+      let css = `.${className} {`;
+      
+      if (bgValue && typeof bgValue === 'string') {
+        if (bgValue.includes('gradient')) {
+          css += `background: ${bgValue};`;
+        } else {
+          css += `background-color: ${bgValue};`;
+        }
+      } else {
+        css += `background-color: white;`;
+      }
+      
+      if (colorValue && typeof colorValue === 'string') {
+        css += `color: ${colorValue};`;
+      } else {
+        css += `color: black;`;
+      }
+      
+      // Add other styles
+      if (pageStyle.padding) css += `padding: ${pageStyle.padding};`;
+      if (pageStyle.margin) css += `margin: ${pageStyle.margin};`;
+      if (pageStyle.fontSize) css += `font-size: ${pageStyle.fontSize};`;
+      if (pageStyle.fontWeight) css += `font-weight: ${pageStyle.fontWeight};`;
+      if (pageStyle.textAlign) css += `text-align: ${pageStyle.textAlign};`;
+      
+      css += `}`;
+      styles.push(css);
+    });
+    
+    return styles.join('\n');
+  };
 
   return (
     <div className={`book-container ${className}`}>
       <style>
-        {`
-          .book-container {
-            --global-font-size: ${globalTypography.fontSize};
-            --global-font-family: ${globalTypography.fontFamily};
-            --global-font-weight: ${globalTypography.fontWeight};
-            --global-line-height: ${globalTypography.lineHeight};
-            --global-text-color: ${config.globalStyle?.colors?.text || "#000"};
-          }
-        `}
+        {generatePageStyles()}
       </style>
       
       <div className="book-wrapper">
@@ -149,6 +291,7 @@ export const Book: React.FC<BookProps> = ({
                 key={`page-${index}`}
                 config={pageConfig}
                 pageNumber={pageNumber}
+                pageIndex={index}
               />
             );
           })}

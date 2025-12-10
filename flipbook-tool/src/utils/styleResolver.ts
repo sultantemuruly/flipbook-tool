@@ -45,7 +45,8 @@ function resolveBackground(background: Background | undefined): React.CSSPropert
   const styles: React.CSSProperties = {};
   
   if (background.color) {
-    styles.background = resolveColor(background.color);
+    // Prefer gradients for background colors (named colors like "purple" should use gradient)
+    styles.background = resolveColor(background.color, true);
   }
   
   if (background.image) {

@@ -87,17 +87,27 @@ export const gradients: GradientPreset = {
 /**
  * Resolve color value to CSS string
  */
-export function resolveColor(color: ColorValue | undefined): string {
+export function resolveColor(color: ColorValue | undefined, preferGradient: boolean = false): string {
   if (!color) return "transparent";
   
   if (typeof color === "string") {
-    // Check if it's a named color
-    if (colors[color as keyof typeof colors]) {
-      return colors[color as keyof typeof colors];
-    }
-    // Check if it's a named gradient
-    if (gradients[color as keyof typeof gradients]) {
-      return gradients[color as keyof typeof gradients];
+    // For background colors, check gradients first if they exist
+    if (preferGradient) {
+      if (gradients[color as keyof typeof gradients]) {
+        return gradients[color as keyof typeof gradients];
+      }
+      if (colors[color as keyof typeof colors]) {
+        return colors[color as keyof typeof colors];
+      }
+    } else {
+      // Check if it's a named color
+      if (colors[color as keyof typeof colors]) {
+        return colors[color as keyof typeof colors];
+      }
+      // Check if it's a named gradient
+      if (gradients[color as keyof typeof gradients]) {
+        return gradients[color as keyof typeof gradients];
+      }
     }
     // Return as-is (hex, rgb, etc.)
     return color;
