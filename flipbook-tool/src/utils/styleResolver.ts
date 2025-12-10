@@ -3,7 +3,7 @@
  */
 
 import React from 'react';
-import { PageStyle, Typography, Spacing, Border, Background, Layout } from '../types';
+import { PageStyle, Typography, Background, Layout } from '../types';
 import { resolveColor } from './colors';
 
 /**

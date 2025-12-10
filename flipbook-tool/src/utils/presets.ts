@@ -2,7 +2,7 @@
  * Preset configurations for common use cases
  */
 
-import { BookSize, BookConfig } from '../types';
+import { BookConfig } from '../types';
 
 // Size presets
 export const sizes = {

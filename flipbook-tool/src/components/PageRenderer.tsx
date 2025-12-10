@@ -6,7 +6,6 @@
 import React from 'react';
 import { PageConfig, ContentElement, ImageConfig, VideoConfig } from '../types';
 import { resolvePageStyle } from '../utils/styleResolver';
-import { resolveColor } from '../utils/colors';
 import { convertYouTubeUrl } from '../utils/video';
 
 interface PageRendererProps {
