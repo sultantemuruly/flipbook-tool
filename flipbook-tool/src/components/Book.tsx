@@ -496,7 +496,7 @@ export const Book: React.FC<BookProps> = ({
             </button>
             <label className="import-button">
               <input type="file" accept="application/json,.json" onChange={handleImportInput} />
-              Import layout JSON
+              <span>Import layout JSON</span>
             </label>
             {importError && <div className="import-error">Import failed: {importError}</div>}
           </div>
