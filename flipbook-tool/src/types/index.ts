@@ -191,3 +191,22 @@ export interface SizePreset {
   [key: string]: BookSize;
 }
 
+// Editor/layout state (used by interactive builder)
+export type LayoutElementType = "title" | "text" | "image" | "video" | "shape";
+
+export interface LayoutElementState {
+  id: string;
+  type: LayoutElementType;
+  x: number; // percent
+  y: number; // percent
+  width: number; // percent
+  height: number; // percent
+  zIndex: number;
+  content?: string;
+  url?: string;
+  color?: string;
+  shape?: "rectangle" | "circle";
+}
+
+export type LayoutState = Record<number, LayoutElementState[]>;
+
